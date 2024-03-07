@@ -1,9 +1,15 @@
 import express from 'express'
 import crypto from 'crypto'
+import path from 'path'
+import shell from 'shelljs'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const SECRET = process.env.SECRET!
 const PORT = process.env.PORT!
-const PATH = process.env.PATH!
+const POST_PATH = process.env.POST_PATH!
+const SCRIPT_PATH = process.env.SCRIPT_PATH!
 
 const app = express()
 
@@ -16,12 +22,10 @@ app.use(
       hmac.update(buf)
       const gitHash = req.headers['x-hub-signature']
       const myHash = hmac.digest('hex')
-
       if (gitHash && myHash) {
         const a = Buffer.from(gitHash.slice(5).toString())
         const b = Buffer.from(myHash)
         const result = crypto.timingSafeEqual(a, b)
-
         if (!result) throw new Error('Invalid Hash')
       } else {
         throw new Error('Invalid Hash')
@@ -30,11 +34,14 @@ app.use(
   })
 )
 
-app.post(PATH, (req, res) => {
-  console.log(req.body)
-  res.status(200)
+app.post(POST_PATH, (req, res) => {
+  console.info(`New commit on ${req.body.repository?.name}. Running script...`)
+  if (shell.exec(path.join(__dirname, SCRIPT_PATH)).code !== 0) {
+    shell.echo('Script failed to execute.')
+  }
+  res.status(200).send()
 })
 
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`)
+  console.info(`Listening on port ${PORT}`)
 })
