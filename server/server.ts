@@ -35,11 +35,13 @@ app.use(
 )
 
 app.post(POST_PATH, (req, res) => {
+  // Send a 200 immediately so GitHub knows the server is still listening
+  res.status(200).send()
+  // Run the script to perform <insert task>
   console.info(`New commit on ${req.body.repository?.name}. Running script...`)
   if (shell.exec(path.join(__dirname, SCRIPT_PATH)).code !== 0) {
-    shell.echo('Script failed to execute.')
+    console.error('Script failed to execute.')
   }
-  res.status(200).send()
 })
 
 app.listen(PORT, () => {
